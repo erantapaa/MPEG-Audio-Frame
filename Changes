@@ -21,3 +21,7 @@ Revision history for Perl extension MPEG::Audio::Frame.
 	- Fixed pod errors thanks to Suleyman Gulsuner 
 	- Added mention of binmode in docs, thanks to Nikolaus Schusser
 	- Finally found the little endian CRC problem - was looking in the wrong place (unpack("S",...) => unpack("n",...))
+
+0.07  Sun Oct 19 03:59:41 2003
+	- Made broken load on demand instead of always
+	- Cryptographically signed distribution

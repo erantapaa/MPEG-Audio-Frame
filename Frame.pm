@@ -8,7 +8,7 @@ use integer;
 
 use overload '""' => \&asbin;
 
-our $VERSION = 0.06;
+our $VERSION = 0.07;
 
 # constants
 
@@ -62,7 +62,7 @@ my %samples = (
 );
 
 
-# stolan from libmad, bin.c
+# stolen from libmad, bin.c
 my @crc_table = (
 	0x0000, 0x8005, 0x800f, 0x000a, 0x801b, 0x001e, 0x0014, 0x8011,
 	0x8033, 0x0036, 0x003c, 0x8039, 0x0028, 0x802d, 0x8027, 0x0022,
@@ -117,9 +117,9 @@ sub read {
 	my $pkg = shift || return undef;
 	my $fh = shift || return undef;
 	
-	# return unless fileno $fh # will fail on opened scalar ref, a la 5.8. not a Good Thing&trade;
+	# return unless fileno $fh # will fail on a scalar ref as file, a la 5.8. not a Good Thing&trade;
 	
-	local $/ = "\xff"; # 8 bits of sync.
+	local $/ = "\xff"; # get readline to find 8 bits of sync.
 	
 	my %header;	# the header hash thing
 	my $offset;	# where in the handle
@@ -135,21 +135,21 @@ sub read {
 		$behead = "\xff" . $header;
 		$header = unpack("B*",$header);
 		#print $header,"\n";
-		(
-			$header{sync},
-			$header{version},
-			$header{layer},
-			$header{crc},
-			$header{bitrate},
-			$header{sample},
-			$header{pad},
-			$header{private},
-			$header{chanmode},
-			$header{modext},
-			$header{copy},
-			$header{home},
-			$header{emph},
-		) = map { substr($header,0,$_,'') } ( 3, 2, 2, 1, 4, 2, 1, 1, 2, 2, 1, 1, 2, ); #unpack("B[3]B[2]B[2]B[1]B[4]B[2]B[1]B[1]B[2]B[2]B[1]B[1]B[2]",$header); didn't work as expected. i should reread the docs, i guess... something about alignment, i  suppose.
+		@header{qw(
+			sync
+			version
+			layer
+			crc
+			bitrate
+			sample
+			pad
+			private
+			chanmode
+			modext
+			copy
+			home
+			emph
+		)} = map { substr($header,0,$_,'') } ( 3, 2, 2, 1, 4, 2, 1, 1, 2, 2, 1, 1, 2, ); #unpack("B[3]B[2]B[2]B[1]B[4]B[2]B[1]B[1]B[2]B[2]B[1]B[1]B[2]",$header); didn't work as expected. i should reread the docs, i guess... something about alignment, i  suppose.
 		next if ( # invalid header tests		# some of these are reserved for future use, and will fail, others are simply illegal, and will (surprisingly) also fail
 			$header{sync}		ne '111'	or	# good form, even though we already checked
 			$header{version}	eq '01'		or	# 01 is nonexistent, hence the header is noughty
@@ -169,7 +169,7 @@ sub read {
 		last; # were done reading for the header
 	}
 	
-	use Data::Dumper;
+	#use Data::Dumper;
 	
 	return undef unless $ok;
 	
@@ -187,48 +187,22 @@ sub read {
 	
 	read $fh,my($content),$length - 4 - ($header{crc} ? 0 : 2); # appearantly header length is included... learned this the hard way.
 	
-	my $broken = 0;
-	if ((not $header{crc}) and ((not $header{layer}) or $header{layer} eq '01')){
-		my $bits = $protbits[$layer{$header{layer}}][ $header{chanmode} eq '11' ? 0 : 1 ];
-		my $i;
-		
-		my $c = 0xffff;
-		
-		$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($behead,2,1)))) & 0xff];
-		$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($behead,3,1)))) & 0xff];
-		
-		for ($i = 0; $bits >= 32; do { $bits-=32; $i+=4 }){
-			my $data = unpack("N",substr($content,$i,4));
-			
-			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 24)) & 0xff];
-			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 16)) & 0xff];
-			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  8)) & 0xff];
-			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  0)) & 0xff];
-			
-		}
-		while ($bits >= 8){
-			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ (ord(substr($content,$i++,1)))) & 0xff];
-		} continue { $bits -= 8 }
-		
-		$broken = 1 if ( $c & 0xffff ) != unpack("n",$crc);	
-	}
-	
 	bless {
 		header	=> \%header,	# header bits
 		content	=> $content,	# the actuaol content of the frame, excluding the header and crc
 		length	=> $length,		# the length of the header + content == length($frame->content()) + 4 + ($frame->crc() ? 2 : 0);
 		bitrate	=> $bitrate,	# the bitrate, in kilobits
 		sample	=> $sample,		# the sample rate, in Hz
-		broken	=> $broken,		# wether or not the checksum broke
+		#broken	=> undef,		# wether or not the checksum broke
 		offset	=> $offset,		# the offset where the header was found in the handle, based on tell
 		binhead	=> $behead,		# binary header data
-		crc		=> $crc,
+		crc	=> $crc,
 	},$pkg;
 }
 
 # methods
 
-sub asbin { $_[0]->header() . ( $_[0]->{header}{crc} ? '' : $_[0]->crc() ) . $_[0]->content() };
+sub asbin { $_[0]{header} . ( $_[0]->{header}{crc} ? '' : $_[0]{crc} ) . $_[0]{content} };
 sub content { $_[0]{content} }; 	# byte content of frame
 sub header { wantarray ? %{ $_[0]{header} } : $_[0]{binhead} };	# header hash folded to array in list context, binary header data in scalar
 sub crc	{ $_[0]{crc} };	# the crc
@@ -238,9 +212,37 @@ sub sample { $_[0]{sample} };		# the sample rate
 sub channels { $_[0]{chanmode} };
 sub seconds { no integer; $layer{$_[0]{header}{layer}} ? (1152 / $_[0]->sample()) : (384 / $_[0]->sample()) }	# seconds, microseconds || seconds return value
 sub framerate { no integer; 1 / $_[0]->seconds() };
-sub broken { $_[0]{broken} };		# was the crc broken?
 sub pad	{ not not $_[0]{header}{pad} }; # Perl default true is a nicer thing, i guess.
 sub offset { $_[0]{offset} }; # the offset
+sub broken { # was the crc broken?
+    my $self = shift;
+    if ((not exists $self->{broken}) and (not $self->{header}{crc}) and ((not $self->{header}{layer}) or $self->{header}{layer} eq '01')){
+	my $bits = $protbits[$layer{$self->{header}{layer}}][ $self->{header}{chanmode} eq '11' ? 0 : 1 ];
+	my $i;
+		
+	my $c = 0xffff;
+		
+	$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($self->{binhead},2,1)))) & 0xff];
+	$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($self->{binhead},3,1)))) & 0xff];
+
+	for ($i = 0; $bits >= 32; do { $bits-=32; $i+=4 }){
+	    my $data = unpack("N",substr($self->{content},$i,4));
+			
+	    $c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 24)) & 0xff];
+	    $c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 16)) & 0xff];
+	    $c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  8)) & 0xff];
+	    $c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  0)) & 0xff];
+			
+	}
+	while ($bits >= 8){
+	    $c = ($c << 8) ^ $crc_table[(($c >> 8) ^ (ord(substr($self->{content},$i++,1)))) & 0xff];
+	} continue { $bits -= 8 }
+	$self->{broken} = (( $c & 0xffff ) != unpack("n",$self->{crc})) ? 1 : undef;
+    }
+
+    return $self->{broken};
+}
+
 
 # tie hack
 
@@ -343,6 +345,12 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.07 October 19th 2003
+
+Made broken compute the CRC on demand instead of always.
+
+Cryptographically signed distribution.
 
 =head2 0.06 October 17th 2003
 

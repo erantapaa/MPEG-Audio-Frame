@@ -3,4 +3,5 @@ Frame.pm
 README
 Makefile.PL
 MANIFEST
+SIGNATURE
 t/test.t

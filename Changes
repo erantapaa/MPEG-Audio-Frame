@@ -28,3 +28,15 @@ Revision history for Perl extension MPEG::Audio::Frame.
 
 0.08  Tue Oct 21 23:12:38 2003
 	- Fixed asbin which broke in 0.07 (from $self->header() to $self->{header} instead of $self->{binhead}) thanks to Johan Vromans
+
+0.09  Thu Jan 13 02:09:09 2005
+	- Yasuhiro Sasama submitted a patch to properly handle MPEG2.5 files.
+	- dropped mpeg2 multichannel support, since i don't know how to do it.
+	- Completely rehauled everything internal. Now nearly 50% faster. ***NOTE!
+	  This introduces an incompatible change! $frame->header will no longer
+	  return a hash of string values, but an array of integers***.
+	- Test suite redone and expanded.
+	- Repackaged with Module::Build, and various goodnesses.
+	- Trahed README
+	- Now compatible down to at least 5.005_04
+

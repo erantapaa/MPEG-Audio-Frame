@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use integer;
 
-our $VERSION = 0.02;
+our $VERSION = 0.03;
 
 # constants
 
@@ -161,6 +161,7 @@ sub seconds { no integer; $layer{$_[0]{header}{layer}} ? (1152 / $_[0]->sample()
 sub framerate { no integer; 1 / $_[0]->seconds() };
 sub broken { $_[0]{broken} };		# was the sum broken?
 sub pad	{ not not $_[0]{header}{pad} }; # Perl default true is a nicer thing, i guess.
+sub offset { $_[0]{offset} }; # the offset
 
 # tie hack
 
@@ -243,6 +244,10 @@ This would, had it been implemented, report wether or not the crc of the frame i
 
 Wether or not the frame was padded.
 
+=item offset
+
+The offset where the frame was found in the handle, as reported by tell().
+
 =back
 
 =head1 TIED HANDLE USAGE
@@ -257,6 +262,13 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.03 April 19th 2003
+
+Reimplemented C<offset> method, which came out of sync whilst working on various copies, thanks to Jeff 
+Anderson.
+
+=head2 0.02 April 18th 2003
 
 Some minor documentation and distribution fixes were made.
 

@@ -70,6 +70,10 @@ METHODS
 
     pad Wether or not the frame was padded.
 
+    offset
+        The offset where the frame was found in the handle, as reported by
+        tell().
+
 TIED HANDLE USAGE
     You can also read frame objects via the <HANDLE> operator by tying a
     filehandle to this package in the following manner:
@@ -82,6 +86,11 @@ TIED HANDLE USAGE
     Way cool.
 
 HISTORY
+  0.03 April 19th 2003
+    Reimplemented "offset" method, which came out of sync whilst working on
+    various copies, thanks to Jeff Anderson.
+
+  0.02 April 18th 2003
     Some minor documentation and distribution fixes were made.
 
 AUTHOR

@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use integer;
 
-our $VERSION = 0.01;
+our $VERSION = 0.02;
 
 # constants
 
@@ -249,8 +249,8 @@ Wether or not the frame was padded.
 
 You can also read frame objects via the <HANDLE> operator by tying a filehandle to this package in the following manner:
 
-	tie 'MPEG::Audio::Frame',\*FH;
-	while(<FH>){
+	tie \*MP3, 'MPEG::Audio::Frame',\*FH;
+	while(<MP3>){
 		print "frame at ", $_->offset(), "\n";
 	}
 
@@ -258,9 +258,7 @@ Way cool.
 
 =head1 HISTORY
 
-There is no history you need to know of.
-
-He who controls the past controls the future. I'm a megalomaniac. Muahahaha.
+Some minor documentation and distribution fixes were made.
 
 =head1 AUTHOR
 

@@ -12,3 +12,7 @@ Revision history for Perl extension MPEG::Audio::Frame.
 
 0.04  Sat Aug  2 20:52:42 2003
 	- Fixed length calculation with CRC frames
+
+0.05  Sun Aug  3 01:00:14 2003
+	- Added CRC checking for layers III and I
+	- Added overloaded "" with asbin

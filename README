@@ -28,6 +28,10 @@ METHODS
         Returns the binary data extracted from the handle. This is
         (definately|probably) a valid MPEG 1 or 2 audio frame.
 
+        asbin is also called via the overloaded operator "", so if you treat
+        the frame object like a string, you'd get the binary data you'd get
+        by calling asbin directly.
+
     content
         Returns the content of the frame, minus the header and the crc. This
         is (definately|probably) a valid MPEG 1 or 2 audio frame entity.
@@ -63,10 +67,9 @@ METHODS
         return value from this method.
 
     broken
-        This would, had it been implemented, report wether or not the crc of
-        the frame is valid. Since it's not documented thoroughly, and I
-        don't know how to make my encoders add a sum to frames it doesn't.
-        Patches would be greatly appreciated.
+        This returns true if the CRC computation failed for a protected
+        layer I or III frame. It will always return false on unprotected
+        frames.
 
     pad Wether or not the frame was padded.
 
@@ -86,6 +89,12 @@ TIED HANDLE USAGE
     Way cool.
 
 HISTORY
+  0.05 August 3rd 2003
+    Added overloading of object to asbin by default.
+
+    Added real CRC checking for layers III and I (layer II is a longer
+    story).
+
   0.04 August 2nd 2003
     Fixed the calculation of frame lengths when a CRC is present, thanks to
     Johan Vromans.

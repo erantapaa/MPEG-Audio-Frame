@@ -6,7 +6,9 @@ use strict;
 use warnings;
 use integer;
 
-our $VERSION = 0.04;
+use overload '""' => \&asbin;
+
+our $VERSION = 0.05;
 
 # constants
 
@@ -57,6 +59,56 @@ my %samples = (
 		'10' => 8000,
 #		'11' => reserved
 	}
+);
+
+
+# stolan from libmad, bin.c
+my @crc_table = (
+	0x0000, 0x8005, 0x800f, 0x000a, 0x801b, 0x001e, 0x0014, 0x8011,
+	0x8033, 0x0036, 0x003c, 0x8039, 0x0028, 0x802d, 0x8027, 0x0022,
+	0x8063, 0x0066, 0x006c, 0x8069, 0x0078, 0x807d, 0x8077, 0x0072,
+	0x0050, 0x8055, 0x805f, 0x005a, 0x804b, 0x004e, 0x0044, 0x8041,
+	0x80c3, 0x00c6, 0x00cc, 0x80c9, 0x00d8, 0x80dd, 0x80d7, 0x00d2,
+	0x00f0, 0x80f5, 0x80ff, 0x00fa, 0x80eb, 0x00ee, 0x00e4, 0x80e1,
+	0x00a0, 0x80a5, 0x80af, 0x00aa, 0x80bb, 0x00be, 0x00b4, 0x80b1,
+	0x8093, 0x0096, 0x009c, 0x8099, 0x0088, 0x808d, 0x8087, 0x0082,
+
+	0x8183, 0x0186, 0x018c, 0x8189, 0x0198, 0x819d, 0x8197, 0x0192,
+	0x01b0, 0x81b5, 0x81bf, 0x01ba, 0x81ab, 0x01ae, 0x01a4, 0x81a1,
+	0x01e0, 0x81e5, 0x81ef, 0x01ea, 0x81fb, 0x01fe, 0x01f4, 0x81f1,
+	0x81d3, 0x01d6, 0x01dc, 0x81d9, 0x01c8, 0x81cd, 0x81c7, 0x01c2,
+	0x0140, 0x8145, 0x814f, 0x014a, 0x815b, 0x015e, 0x0154, 0x8151,
+	0x8173, 0x0176, 0x017c, 0x8179, 0x0168, 0x816d, 0x8167, 0x0162,
+	0x8123, 0x0126, 0x012c, 0x8129, 0x0138, 0x813d, 0x8137, 0x0132,
+	0x0110, 0x8115, 0x811f, 0x011a, 0x810b, 0x010e, 0x0104, 0x8101,
+
+	0x8303, 0x0306, 0x030c, 0x8309, 0x0318, 0x831d, 0x8317, 0x0312,
+	0x0330, 0x8335, 0x833f, 0x033a, 0x832b, 0x032e, 0x0324, 0x8321,
+	0x0360, 0x8365, 0x836f, 0x036a, 0x837b, 0x037e, 0x0374, 0x8371,
+	0x8353, 0x0356, 0x035c, 0x8359, 0x0348, 0x834d, 0x8347, 0x0342,
+	0x03c0, 0x83c5, 0x83cf, 0x03ca, 0x83db, 0x03de, 0x03d4, 0x83d1,
+	0x83f3, 0x03f6, 0x03fc, 0x83f9, 0x03e8, 0x83ed, 0x83e7, 0x03e2,
+	0x83a3, 0x03a6, 0x03ac, 0x83a9, 0x03b8, 0x83bd, 0x83b7, 0x03b2,
+	0x0390, 0x8395, 0x839f, 0x039a, 0x838b, 0x038e, 0x0384, 0x8381,
+
+	0x0280, 0x8285, 0x828f, 0x028a, 0x829b, 0x029e, 0x0294, 0x8291,
+	0x82b3, 0x02b6, 0x02bc, 0x82b9, 0x02a8, 0x82ad, 0x82a7, 0x02a2,
+	0x82e3, 0x02e6, 0x02ec, 0x82e9, 0x02f8, 0x82fd, 0x82f7, 0x02f2,
+	0x02d0, 0x82d5, 0x82df, 0x02da, 0x82cb, 0x02ce, 0x02c4, 0x82c1,
+	0x8243, 0x0246, 0x024c, 0x8249, 0x0258, 0x825d, 0x8257, 0x0252,
+	0x0270, 0x8275, 0x827f, 0x027a, 0x826b, 0x026e, 0x0264, 0x8261,
+	0x0220, 0x8225, 0x822f, 0x022a, 0x823b, 0x023e, 0x0234, 0x8231,
+	0x8213, 0x0216, 0x021c, 0x8219, 0x0208, 0x820d, 0x8207, 0x0202
+);
+
+sub CRC_POLY () { 0x8005 }
+
+###
+
+my @protbits = (
+	[ 128, 256 ], # layer one
+	undef,
+	[ 136, 256 ], # layer three
 );
 
 # constructor and work horse
@@ -117,6 +169,8 @@ sub read {
 		last; # were done reading for the header
 	}
 	
+	use Data::Dumper;
+	
 	return undef unless $ok;
 	
 	my $crc;
@@ -133,7 +187,31 @@ sub read {
 	
 	read $fh,my($content),$length - 4 - ($header{crc} ? 0 : 2); # appearantly header length is included... learned this the hard way.
 	
-	my $broken = 0; # $broken = (unpack("%16S*",$content) == unpack("S" # or is it "s"? # , $crc)) ? 0 : 1; # not enough info in docs. 
+	my $broken = 0;
+	if ((not $header{crc}) and ((not $header{layer}) or $header{layer} eq '01')){
+		my $bits = $protbits[$layer{$header{layer}}][ $header{chanmode} eq '11' ? 0 : 1 ];
+		my $i;
+		
+		my $c = 0xffff;
+		
+		$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($behead,2,1)))) & 0xff];
+		$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ord((substr($behead,3,1)))) & 0xff];
+		
+		for ($i = 0; $bits >= 32; do { $bits-=32; $i+=4 }){
+			my $data = unpack("N",substr($content,$i,4));
+			
+			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 24)) & 0xff];
+			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >> 16)) & 0xff];
+			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  8)) & 0xff];
+			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ ($data >>  0)) & 0xff];
+			
+		}
+		while ($bits >= 8){
+			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ (ord(substr($content,$i++,1)))) & 0xff];
+		} continue { $bits -= 8 }
+		
+		$broken = 1 if ( $c & 0xffff ) != unpack("S",$crc);	
+	}
 	
 	bless {
 		header	=> \%header,	# header bits
@@ -150,16 +228,17 @@ sub read {
 
 # methods
 
-sub asbin { $_[0]->header() . ((defined $_[0]->crc()) ? $_[0]->crc() : '') . $_[0]->content() };
+sub asbin { $_[0]->header() . ( $_[0]->{header}{crc} ? '' : $_[0]->crc() ) . $_[0]->content() };
 sub content { $_[0]{content} }; 	# byte content of frame
 sub header { wantarray ? %{ $_[0]{header} } : $_[0]{binhead} };	# header hash folded to array in list context, binary header data in scalar
 sub crc	{ $_[0]{crc} };	# the crc
 sub length { $_[0]{length} };		# length of frame in bytes
 sub bitrate { $_[0]{bitrate} };
 sub sample { $_[0]{sample} };		# the sample rate
+sub channels { $_[0]{chanmode} };
 sub seconds { no integer; $layer{$_[0]{header}{layer}} ? (1152 / $_[0]->sample()) : (384 / $_[0]->sample()) }	# seconds, microseconds || seconds return value
 sub framerate { no integer; 1 / $_[0]->seconds() };
-sub broken { $_[0]{broken} };		# was the sum broken?
+sub broken { $_[0]{broken} };		# was the crc broken?
 sub pad	{ not not $_[0]{header}{pad} }; # Perl default true is a nicer thing, i guess.
 sub offset { $_[0]{offset} }; # the offset
 
@@ -204,6 +283,8 @@ This is the constructor method. It receives a reference to a filehandle, and rea
 
 Returns the binary data extracted from the handle. This is (definately|probably) a valid MPEG 1 or 2 audio frame.
 
+asbin is also called via the overloaded operator "", so if you treat the frame object like a string, you'd get the binary data you'd get by calling asbin directly.
+
 =item content
 
 Returns the content of the frame, minus the header and the crc. This is (definately|probably) a valid MPEG 1 or 2 audio frame entity.
@@ -238,7 +319,7 @@ Should this frame describe the stream, the framerate would be the return value f
 
 =item broken
 
-This would, had it been implemented, report wether or not the crc of the frame is valid. Since it's not documented thoroughly, and I don't know how to make my encoders add a sum to frames it doesn't. Patches would be greatly appreciated.
+This returns true if the CRC computation failed for a protected layer I or III frame. It will always return false on unprotected frames.
 
 =item pad
 
@@ -262,6 +343,12 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.05 August 3rd 2003
+
+Added overloading of object to asbin by default.
+
+Added real CRC checking for layers III and I (layer II is a longer story).
 
 =head2 0.04 August 2nd 2003
 

@@ -8,7 +8,7 @@ use integer;
 
 use overload '""' => \&asbin;
 
-our $VERSION = 0.05;
+our $VERSION = 0.06;
 
 # constants
 
@@ -210,7 +210,7 @@ sub read {
 			$c = ($c << 8) ^ $crc_table[(($c >> 8) ^ (ord(substr($content,$i++,1)))) & 0xff];
 		} continue { $bits -= 8 }
 		
-		$broken = 1 if ( $c & 0xffff ) != unpack("S",$crc);	
+		$broken = 1 if ( $c & 0xffff ) != unpack("n",$crc);	
 	}
 	
 	bless {
@@ -263,8 +263,8 @@ MPEG::Audio::Frame - a class for weeding out MPEG audio frames out of a file han
 
 	open FILE,"file.mp3";
 
-	while(my $frame = MPEG::Audio::Frame->read(\*FILE)){=
-		print $frame->offset(), ": ", $frame->bitrate(), "Kbps/", $bitrate->sample()/1000, "KHz\n"; # or something.
+        while(my $frame = MPEG::Audio::Frame->read(\*FILE)){
+		print $frame->offset(), ": ", $frame->bitrate(), "Kbps/", $frame->sample()/1000, "KHz\n"; # or something.
 	}
 
 =head1 DESCRIPTION
@@ -277,7 +277,7 @@ A very simple, pure Perl module which allows parsing out data from mp3 files, or
 
 =item read GLOB
 
-This is the constructor method. It receives a reference to a filehandle, and reads the next (hopefully) valid frame it can find on the stream, 
+This is the constructor method. It receives a reference to a filehandle, and reads the next (hopefully) valid frame it can find on the stream. Please make sure use binmode if you're on a funny platform - the module doesn't know the difference, and shouldn't change stuff, IMHO.
 
 =item asbin
 
@@ -343,6 +343,12 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.06 October 17th 2003
+
+Fixed some doc errors, thanks to Nikolaus Schusser and Suleyman Gulsuner.
+
+Fixed CRC computation on little endian machines.
 
 =head2 0.05 August 3rd 2003
 

@@ -7,8 +7,8 @@ SYNOPSIS
 
             open FILE,"file.mp3";
 
-            while(my $frame = MPEG::Audio::Frame->read(\*FILE)){=
-                    print $frame->offset(), ": ", $frame->bitrate(), "Kbps/", $bitrate->sample()/1000, "KHz\n"; # or something.
+            while(my $frame = MPEG::Audio::Frame->read(\*FILE)){
+                    print $frame->offset(), ": ", $frame->bitrate(), "Kbps/", $frame->sample()/1000, "KHz\n"; # or something.
             }
 
 DESCRIPTION
@@ -22,7 +22,9 @@ METHODS
     read GLOB
         This is the constructor method. It receives a reference to a
         filehandle, and reads the next (hopefully) valid frame it can find
-        on the stream,
+        on the stream. Please make sure use binmode if you're on a funny
+        platform - the module doesn't know the difference, and shouldn't
+        change stuff, IMHO.
 
     asbin
         Returns the binary data extracted from the handle. This is
@@ -89,6 +91,12 @@ TIED HANDLE USAGE
     Way cool.
 
 HISTORY
+  0.06 October 17th 2003
+    Fixed some doc errors, thanks to Nikolaus Schusser and Suleyman
+    Gulsuner.
+
+    Fixed CRC computation on little endian machines.
+
   0.05 August 3rd 2003
     Added overloading of object to asbin by default.
 

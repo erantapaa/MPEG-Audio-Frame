@@ -11,8 +11,13 @@ Revision history for Perl extension MPEG::Audio::Frame.
 	- Fixed lost offset method, which appeared in doc example but not in the source
 
 0.04  Sat Aug  2 20:52:42 2003
-	- Fixed length calculation with CRC frames
+	- Fixed length calculation with CRC frames thanks to Johan Vromans
 
 0.05  Sun Aug  3 01:00:14 2003
 	- Added CRC checking for layers III and I
 	- Added overloaded "" with asbin
+
+0.06  Fri Oct 17 11:36:25 2003
+	- Fixed pod errors thanks to Suleyman Gulsuner 
+	- Added mention of binmode in docs, thanks to Nikolaus Schusser
+	- Finally found the little endian CRC problem - was looking in the wrong place (unpack("S",...) => unpack("n",...))

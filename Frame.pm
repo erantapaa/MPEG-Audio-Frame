@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use integer;
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
 # constants
 
@@ -131,7 +131,7 @@ sub read {
 	
 	
 	
-	read $fh,my($content),$length-4; # appearantly header length is included... learned this the hard way.
+	read $fh,my($content),$length - 4 - ($header{crc} ? 0 : 2); # appearantly header length is included... learned this the hard way.
 	
 	my $broken = 0; # $broken = (unpack("%16S*",$content) == unpack("S" # or is it "s"? # , $crc)) ? 0 : 1; # not enough info in docs. 
 	
@@ -150,7 +150,7 @@ sub read {
 
 # methods
 
-sub asbin { $_[0]->header() . ($_[0]->crc() || '') . $_[0]->content() };
+sub asbin { $_[0]->header() . ((defined $_[0]->crc()) ? $_[0]->crc() : '') . $_[0]->content() };
 sub content { $_[0]{content} }; 	# byte content of frame
 sub header { wantarray ? %{ $_[0]{header} } : $_[0]{binhead} };	# header hash folded to array in list context, binary header data in scalar
 sub crc	{ $_[0]{crc} };	# the crc
@@ -262,6 +262,10 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.04 August 2nd 2003
+
+Fixed the calculation of frame lengths when a CRC is present, thanks to Johan Vromans.
 
 =head2 0.03 April 19th 2003
 

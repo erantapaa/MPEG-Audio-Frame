@@ -9,3 +9,6 @@ Revision history for Perl extension MPEG::Audio::Frame.
 
 0.03  Fri Apr 18 19:05:42 2003
 	- Fixed lost offset method, which appeared in doc example but not in the source
+
+0.04  Sat Aug  2 20:52:42 2003
+	- Fixed length calculation with CRC frames

@@ -86,6 +86,10 @@ TIED HANDLE USAGE
     Way cool.
 
 HISTORY
+  0.04 August 2nd 2003
+    Fixed the calculation of frame lengths when a CRC is present, thanks to
+    Johan Vromans.
+
   0.03 April 19th 2003
     Reimplemented "offset" method, which came out of sync whilst working on
     various copies, thanks to Jeff Anderson.

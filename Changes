@@ -25,3 +25,6 @@ Revision history for Perl extension MPEG::Audio::Frame.
 0.07  Sun Oct 19 03:59:41 2003
 	- Made broken load on demand instead of always
 	- Cryptographically signed distribution
+
+0.08  Tue Oct 21 23:12:38 2003
+	- Fixed asbin which broke in 0.07 (from $self->header() to $self->{header} instead of $self->{binhead}) thanks to Johan Vromans

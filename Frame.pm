@@ -8,7 +8,7 @@ use integer;
 
 use overload '""' => \&asbin;
 
-our $VERSION = 0.07;
+our $VERSION = 0.08;
 
 # constants
 
@@ -127,7 +127,8 @@ sub read {
 	my $ok = undef;
 	
 	while (<$fh>){ # readline, readline, find me a header, make me a header, catch me a header. somewhate wasteful, perhaps.
-		read $fh,my($header), 1; # read the first byte
+	    $offset = tell($fh) - 1;
+	    read $fh,my($header), 1; # read the first byte;
 		next unless (unpack("B3",$header))[0] eq '111';	# see if the sync remains
 		#print "frame header found at ", unpack("H*",pack("I",$offset = tell($fh) - 2)), "\n";
 		read $fh,$header,2,1; # the remaining bytes
@@ -161,8 +162,7 @@ sub read {
 		);
 		
 		$header{sync} = '11111111' . $header{sync}; # make it 'real'
-		
-		$offset = tell($fh) - 2;
+	       
 		
 		$ok = 1;	
 			
@@ -202,7 +202,7 @@ sub read {
 
 # methods
 
-sub asbin { $_[0]{header} . ( $_[0]->{header}{crc} ? '' : $_[0]{crc} ) . $_[0]{content} };
+sub asbin { $_[0]{binhead} . ( $_[0]->{header}{crc} ? '' : $_[0]{crc} ) . $_[0]{content} };
 sub content { $_[0]{content} }; 	# byte content of frame
 sub header { wantarray ? %{ $_[0]{header} } : $_[0]{binhead} };	# header hash folded to array in list context, binary header data in scalar
 sub crc	{ $_[0]{crc} };	# the crc
@@ -345,6 +345,10 @@ You can also read frame objects via the <HANDLE> operator by tying a filehandle 
 Way cool.
 
 =head1 HISTORY
+
+=head2 0.08 October 21st 2003
+
+Johan Vromans cought a glitch in asbin, which surfaced in 0.08 - now fixed.
 
 =head2 0.07 October 19th 2003
 

@@ -191,7 +191,8 @@ BEGIN {
 # constructor and work horse
 sub read {
 	my $pkg = shift || return undef;
-	my $fh = shift || return undef;
+	my $fh = shift;
+        return undef unless defined($fh);
 	
 	local $/ = "\xff"; # get readline to find 8 bits of sync.
 	
